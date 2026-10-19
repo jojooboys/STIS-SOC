@@ -1,0 +1,49 @@
+# Konfigurasi privat dan database operasional tidak boleh dipublikasikan.
+.env
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite*
+**/instance/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Dependensi dan hasil kompilasi dapat dibuat kembali setelah clone.
+.venv*/
+venv/
+node_modules/
+__pycache__/
+*.py[cod]
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Bukti/log lokal dan ekspor; dataset publik berada di datasets/dummy/.
+*.log
+*.pid
+*.tar.gz
+*.zip
+*.bak
+*.docx
+datasets/private/
+reports/
+
+# Catatan penulis, arsip penataan, tutorial pribadi, dan metadata Git lama.
+/catatan_pribadi/
+
+# Pengaturan pribadi editor dan sistem operasi.
+.idea/
+.vscode/
+.codex/
+.agents/
+.DS_Store
+Thumbs.db
+Desktop.ini

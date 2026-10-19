@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-soc-dark text-white font-sans antialiased overflow-x-hidden;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-soc-darker;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-soc-border rounded-full hover:bg-soc-accent transition-colors;
+}
+
+/* Tables */
+table {
+  @apply w-full text-sm text-left text-gray-300;
+}
+thead {
+  @apply text-xs text-gray-400 uppercase bg-soc-card/50;
+}
+th {
+  @apply px-4 py-3 font-medium;
+}
+td {
+  @apply px-4 py-3 border-b border-soc-border/50;
+}
+tr:last-child td {
+  @apply border-b-0;
+}
+tr:hover {
+  @apply bg-soc-card/80;
+}
+
+/* Animations */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

@@ -1,0 +1,17 @@
+[Unit]
+Description=STIS SOC website integrity and malicious-content scan
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/local/sbin/website_guard.py check --root /var/www
+Nice=10
+IOSchedulingClass=idle
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/var/www
+ReadWritePaths=/var/lib/mini-soc-website-guard /var/log/mini-soc

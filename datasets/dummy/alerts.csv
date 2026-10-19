@@ -1,0 +1,13 @@
+alert_id,rule_id,rule_level,rule_groups,agent_id,agent_name,src_ip,dst_ip,age_seconds,rule_description,full_log,expected_threat,expected_action
+dummy-001,100501,10,"[""brute_force""]",DEMO-001,server-demo.example,192.0.2.11,198.51.100.10,30,SYNTHETIC case 01; rule 100501,SYNTHETIC event; user=USER_MASKED; host=HOST_MASKED; case=01,brute_force,block
+dummy-002,100510,12,"[""sql_injection""]",DEMO-001,server-demo.example,192.0.2.12,198.51.100.10,30,SYNTHETIC case 02; rule 100510,SYNTHETIC event; user=USER_MASKED; host=HOST_MASKED; case=02,sql_injection,block
+dummy-003,100480,8,"[""ssrf""]",DEMO-001,server-demo.example,192.0.2.13,198.51.100.10,30,SYNTHETIC case 03; rule 100480,SYNTHETIC event; user=USER_MASKED; host=HOST_MASKED; case=03,ssrf,below_threshold
+dummy-004,100481,10,"[""ssrf""]",DEMO-001,server-demo.example,192.0.2.14,198.51.100.10,30,SYNTHETIC case 04; rule 100481,SYNTHETIC event; user=USER_MASKED; host=HOST_MASKED; case=04,ssrf,block
+dummy-005,100304,10,"[""web_defacement""]",DEMO-001,server-demo.example,,198.51.100.10,30,SYNTHETIC case 05; rule 100304,SYNTHETIC event; user=USER_MASKED; host=HOST_MASKED; case=05,web_defacement,integrity_alert
+dummy-006,100305,14,"[""webshell_content""]",DEMO-001,server-demo.example,,198.51.100.10,30,SYNTHETIC case 06; rule 100305,SYNTHETIC event; user=USER_MASKED; host=HOST_MASKED; case=06,webshell_content,integrity_alert
+dummy-007,100002,10,"[""brute_force""]",DEMO-001,server-demo.example,192.0.2.254,198.51.100.10,30,SYNTHETIC case 07; rule 100002,SYNTHETIC event; user=USER_MASKED; host=HOST_MASKED; case=07,brute_force,whitelisted
+dummy-008,100510,12,"[""sql_injection""]",DEMO-001,server-demo.example,,198.51.100.10,30,SYNTHETIC case 08; rule 100510,SYNTHETIC event; user=USER_MASKED; host=HOST_MASKED; case=08,sql_injection,no_source_ip
+dummy-009,100510,12,"[""sql_injection""]",DEMO-001,server-demo.example,192.0.2.19,198.51.100.10,3600,SYNTHETIC case 09; rule 100510,SYNTHETIC event; user=USER_MASKED; host=HOST_MASKED; case=09,sql_injection,stale_alert
+dummy-010,100610,10,"[""host_command""]",DEMO-001,server-demo.example,,198.51.100.10,30,SYNTHETIC case 10; rule 100610,SYNTHETIC event; user=USER_MASKED; host=HOST_MASKED; case=10,host_command,review_only
+dummy-011,999999,12,"[""unknown_demo""]",DEMO-001,server-demo.example,192.0.2.21,198.51.100.10,30,SYNTHETIC case 11; rule 999999,SYNTHETIC event; user=USER_MASKED; host=HOST_MASKED; case=11,other,review_only
+dummy-012,100468,6,"[""xss""]",DEMO-001,server-demo.example,192.0.2.22,198.51.100.10,30,SYNTHETIC case 12; rule 100468,SYNTHETIC event; user=USER_MASKED; host=HOST_MASKED; case=12,xss,below_threshold

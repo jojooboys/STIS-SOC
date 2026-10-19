@@ -1,0 +1,12 @@
+[Unit]
+Description=Run STIS SOC website guard every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=60s
+RandomizedDelaySec=10s
+Persistent=true
+Unit=website-guard.service
+
+[Install]
+WantedBy=timers.target

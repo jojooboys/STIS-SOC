@@ -1,0 +1,312 @@
+<!-- Custom rules for the STIS SOC lab. -->
+<!-- Install as /var/ossec/etc/rules/local_rules.xml on the Wazuh Manager. -->
+
+<group name="local,web,security,">
+
+  <!-- One failed SSH authentication. Built-in rule 5716 supplies srcip. -->
+  <rule id="100001" level="5">
+    <if_sid>5716</if_sid>
+    <description>SSH authentication failure from $(srcip)</description>
+    <group>authentication_failed,ssh_failed_login,</group>
+  </rule>
+
+  <!-- Five failed SSH authentications from the same source in 60 seconds. -->
+  <rule id="100002" level="10" frequency="5" timeframe="60">
+    <if_matched_sid>100001</if_matched_sid>
+    <same_srcip />
+    <description>SSH brute force attack from $(srcip)</description>
+    <group>authentication_failures,brute_force,ssh_attack,</group>
+  </rule>
+
+  <!-- Homepage request decoded from the Apache access log. -->
+  <rule id="100100" level="3">
+    <if_sid>31100</if_sid>
+    <url>^/$</url>
+    <description>Website homepage access from $(srcip)</description>
+    <group>web_access,</group>
+  </rule>
+
+  <!-- Application authentication events from login_attempt.log. -->
+  <rule id="100101" level="5">
+    <if_sid>2501</if_sid>
+    <decoded_as>web1-login</decoded_as>
+    <match>FAILED LOGIN</match>
+    <description>Failed web authentication for $(dstuser) from $(srcip)</description>
+    <group>web_authentication_failed,authentication_failed,</group>
+  </rule>
+
+  <rule id="100102" level="10" frequency="5" timeframe="60">
+    <if_matched_sid>100101</if_matched_sid>
+    <same_srcip />
+    <description>Web login brute force attack from $(srcip)</description>
+    <group>authentication_failures,web_attack,brute_force,</group>
+  </rule>
+
+  <rule id="100103" level="3">
+    <decoded_as>web1-login</decoded_as>
+    <match>SUCCESS LOGIN</match>
+    <description>Successful web authentication for $(dstuser) from $(srcip)</description>
+    <group>authentication_success,web_access,</group>
+  </rule>
+
+  <!-- The PHP application emits this event when the POST body looks malicious. -->
+  <rule id="100200" level="12">
+    <decoded_as>web1-login</decoded_as>
+    <match>SQLI ATTEMPT</match>
+    <description>Possible SQL injection in web login from $(srcip)</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+    <group>attack,web_attack,sql_injection,</group>
+  </rule>
+
+  <!-- Raise Wazuh's built-in Apache SQL injection rule 31103 to SOC level 12. -->
+  <rule id="100201" level="12">
+    <if_sid>31103</if_sid>
+    <description>SQL injection attempt in web request from $(srcip)</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+    <group>attack,web_attack,sql_injection,</group>
+  </rule>
+
+  <!-- Wazuh also recognizes URL-encoded SQLi through its 31164/31165 rules. -->
+  <rule id="100202" level="12">
+    <if_sid>31164,31165</if_sid>
+    <description>Encoded SQL injection attempt in web request from $(srcip)</description>
+    <group>attack,web_attack,sql_injection,</group>
+  </rule>
+
+  <!-- Suspicious gambling/loan advertisement text found in a website file. -->
+  <rule id="100300" level="12">
+    <!-- JSON events with timestamp + event_type match Wazuh's 86600 root. -->
+    <if_sid>86600</if_sid>
+    <field name="event_type">^web_content_threat$</field>
+    <description>Website content injection detected: $(threat_type) in $(file_path)</description>
+    <mitre>
+      <id>T1491.002</id>
+    </mitre>
+    <group>attack,web_attack,web_defacement,malicious_content,</group>
+  </rule>
+
+  <!-- Website Guard found PHP code shaped like an obfuscated webshell.
+       No source IP is inferred from a file-system finding. -->
+  <rule id="100305" level="14">
+    <if_sid>100300</if_sid>
+    <field name="threat_type">^webshell_code$</field>
+    <description>Possible webshell content in $(file_path)</description>
+    <group>webshell_content,web_defacement,malicious_content,</group>
+  </rule>
+
+  <!-- A monitored website file differs from the approved baseline. -->
+  <rule id="100301" level="10">
+    <if_sid>86600</if_sid>
+    <field name="event_type">^web_integrity_change$</field>
+    <field name="change_type" type="pcre2">^(added|modified)$</field>
+    <description>Website integrity change: $(change_type) $(file_path)</description>
+    <mitre>
+      <id>T1491.002</id>
+    </mitre>
+    <group>web,integrity_monitoring,web_defacement,</group>
+  </rule>
+
+  <!-- Deletion or a newly introduced symbolic link is higher risk. -->
+  <rule id="100302" level="12">
+    <if_sid>86600</if_sid>
+    <field name="event_type">^web_integrity_change$</field>
+    <field name="change_type" type="pcre2">^(deleted|symlink)$</field>
+    <description>Critical website integrity change: $(change_type) $(file_path)</description>
+    <mitre>
+      <id>T1491.002</id>
+    </mitre>
+    <group>attack,web,integrity_monitoring,web_defacement,</group>
+  </rule>
+
+  <!-- Native Wazuh FIM provides immediate coverage between scanner runs. -->
+  <rule id="100304" level="10">
+    <if_group>syscheck</if_group>
+    <field name="file" type="pcre2">^/var/www/[^/]+/</field>
+    <description>Website integrity change reported by Wazuh FIM: $(file)</description>
+    <mitre>
+      <id>T1491.002</id>
+    </mitre>
+    <group>web,integrity_monitoring,web_defacement,</group>
+  </rule>
+
+  <!-- STIS web-attack matrix. These rules apply to Apache logs collected by
+       each Agent; adding a site does not change Manager-side rules. -->
+
+  <!-- A single webshell filename is suspicious; block only after repetition. -->
+  <rule id="100400" level="7">
+    <if_sid>31100,31101,31108</if_sid>
+    <url type="pcre2">(?i)/(?:radio|wso|shell|cmd|upload|filemanager)\.(?:php|phtml)(?:[/?]|$)</url>
+    <description>Possible webshell file probe at $(url) from $(srcip)</description>
+    <group>webshell_probe,web_attack,</group>
+  </rule>
+  <rule id="100401" level="10" frequency="5" timeframe="120">
+    <if_matched_sid>100400</if_matched_sid>
+    <same_srcip />
+    <description>Repeated webshell file probes from $(srcip)</description>
+    <group>webshell_probe,web_attack,</group>
+  </rule>
+
+  <rule id="100410" level="6">
+    <if_sid>31100,31101,31108</if_sid>
+    <url type="pcre2">(?i)/(?:wp-login\.php|xmlrpc\.php|wp-admin/|wp-content/plugins/)</url>
+    <description>WordPress endpoint probe at $(url) from $(srcip)</description>
+    <group>wordpress_scan,web_scan,</group>
+  </rule>
+  <rule id="100411" level="10" frequency="8" timeframe="120">
+    <if_matched_sid>100410</if_matched_sid>
+    <same_srcip />
+    <description>Repeated WordPress endpoint probes from $(srcip)</description>
+    <group>wordpress_scan,web_scan,</group>
+  </rule>
+
+  <!-- User-Agent alone is weak evidence; require ten hits before blocking. -->
+  <rule id="100420" level="5">
+    <if_sid>31100,31101,31108</if_sid>
+    <regex type="pcre2">(?i)"[^"]*(?:nuclei|sqlmap|nmap scripting engine)[^"]*"</regex>
+    <description>Known scanner User-Agent from $(srcip)</description>
+    <group>vulnerability_scan,web_scan,</group>
+  </rule>
+  <rule id="100421" level="10" frequency="10" timeframe="60">
+    <if_matched_sid>100420</if_matched_sid>
+    <same_srcip />
+    <description>Repeated vulnerability scanner traffic from $(srcip)</description>
+    <group>vulnerability_scan,web_scan,</group>
+  </rule>
+
+  <rule id="100430" level="12">
+    <if_sid>31100,31101,31108</if_sid>
+    <url type="pcre2">(?i)/(?:\.env(?:[./?]|$)|\.git/(?:config|HEAD)(?:[/?]|$)|(?:config|settings)\.(?:php|ya?ml|json)\.(?:bak|old|save)(?:[/?]|$))</url>
+    <description>Sensitive configuration file requested: $(url) from $(srcip)</description>
+    <group>sensitive_file,web_attack,</group>
+  </rule>
+
+  <rule id="100440" level="12">
+    <if_sid>31100,31101,31108</if_sid>
+    <url type="pcre2">(?i)/(?:vendor/phpunit/phpunit/src/Util/PHP/eval-stdin\.php|cgi-bin/[^?]*\?(?:[^ ]*)?(?:%3b|;)(?:id|whoami|uname))</url>
+    <description>High-confidence RCE endpoint probe: $(url) from $(srcip)</description>
+    <group>rce,web_attack,</group>
+  </rule>
+
+  <rule id="100450" level="6">
+    <if_sid>31100,31101,31108</if_sid>
+    <url type="pcre2">(?i)/(?:manager/html|actuator/(?:env|health)|server-status)(?:[/?]|$)</url>
+    <description>Service enumeration at $(url) from $(srcip)</description>
+    <group>recon,web_scan,</group>
+  </rule>
+  <rule id="100451" level="10" frequency="5" timeframe="120">
+    <if_matched_sid>100450</if_matched_sid>
+    <same_srcip />
+    <description>Repeated service enumeration from $(srcip)</description>
+    <group>recon,web_scan,</group>
+  </rule>
+
+  <rule id="100460" level="12">
+    <if_sid>31100,31101,31108</if_sid>
+    <url type="pcre2">(?i)(?:\.\./|\.\.%2f|%2e%2e(?:%2f|/)|%252e%252e%252f|/etc/passwd|/proc/self/environ)</url>
+    <description>Path traversal or local file inclusion probe at $(url) from $(srcip)</description>
+    <group>path_traversal,web_attack,</group>
+  </rule>
+
+  <!-- Wazuh replaces 31105 with 31106 when an XSS-shaped request returns
+       HTTP 200. Give both paths one dedicated group so only XSS probes,
+       never unrelated 31106 web attacks, contribute to the same counter. -->
+  <rule id="100468" level="6">
+    <if_sid>31105</if_sid>
+    <description>XSS-shaped URL probe at $(url) from $(srcip)</description>
+    <group>xss,stis_xss_probe,web_attack,</group>
+  </rule>
+  <rule id="100469" level="6">
+    <if_sid>31106</if_sid>
+    <url type="pcre2">(?i)(?:%3cscript|%3c%2fscript|script>|script%3e|src=javascript|%20onload=|iframe%20)</url>
+    <description>XSS-shaped URL probe returned HTTP 200 at $(url) from $(srcip)</description>
+    <group>xss,stis_xss_probe,web_attack,</group>
+  </rule>
+  <rule id="100470" level="10" frequency="5" timeframe="60">
+    <if_matched_group>stis_xss_probe</if_matched_group>
+    <same_srcip />
+    <description>Repeated XSS probes from $(srcip)</description>
+    <group>xss,web_attack,</group>
+  </rule>
+
+  <!-- A URL parameter can signal SSRF, but only egress logs can confirm it. -->
+  <rule id="100480" level="8">
+    <if_sid>31100,31101,31108</if_sid>
+    <url type="pcre2">(?i)(?:169\.254\.169\.254|metadata\.google\.internal|127\.0\.0\.1%3a|localhost%3a)</url>
+    <description>Possible SSRF target in request: $(url) from $(srcip)</description>
+    <group>ssrf,web_attack,</group>
+  </rule>
+  <!-- Five matching log events from one client merit an IP response; collect
+       each Apache request only once so duplicate log sources do not inflate
+       this counter. This rule does not prove a server-side fetch. -->
+  <rule id="100481" level="10" frequency="5" timeframe="3600">
+    <if_matched_sid>100480</if_matched_sid>
+    <same_srcip />
+    <description>Repeated SSRF-pattern URL probes from $(srcip)</description>
+    <group>ssrf,web_attack,</group>
+  </rule>
+
+  <!-- Built-in Shellshock 4xx/5xx rules are level 6. Keep their decoder
+       evidence but raise a matched attempt to the SOC blocking threshold. -->
+  <rule id="100490" level="12">
+    <if_sid>31166,31167</if_sid>
+    <description>Shellshock payload in web request from $(srcip)</description>
+    <group>shellshock,web_attack,</group>
+  </rule>
+
+  <!-- Optional JSON event contract for services configured on each Agent.
+       The application writes one object per line with timestamp, event_type
+       and srcip. Wazuh's 86600 root requires timestamp and event_type. -->
+  <rule id="100500" level="5">
+    <if_sid>86600</if_sid>
+    <field name="event_type">^stis_auth_failed$</field>
+    <description>Service authentication failed for $(dstuser) from $(srcip)</description>
+    <group>authentication_failed,service_auth,</group>
+  </rule>
+  <rule id="100501" level="10" frequency="5" timeframe="60">
+    <if_matched_sid>100500</if_matched_sid>
+    <same_srcip />
+    <description>Service brute force from $(srcip)</description>
+    <group>brute_force,authentication_failures,service_auth,</group>
+  </rule>
+
+  <!-- Generic application-reported SQLi for every JSONL-monitored site.
+       The app must reject the input itself; this rule only records evidence. -->
+  <rule id="100510" level="12">
+    <if_sid>86600</if_sid>
+    <field name="event_type">^stis_sqli_attempt$</field>
+    <description>Application-reported SQL injection at $(url) from $(srcip)</description>
+    <group>attack,web_attack,sql_injection,</group>
+  </rule>
+
+  <!-- Curated IP intelligence. The CDB contains only operator-reviewed IPs;
+       the SOC may block this alert at pfSense when srcip is trustworthy. -->
+  <rule id="100600" level="12">
+    <if_group>web|attack|attacks</if_group>
+    <list field="srcip" lookup="address_match_key">etc/lists/stis-known-bad</list>
+    <description>Web request from a reviewed reputation-list IP: $(srcip)</description>
+    <group>ip_reputation,web_attack,</group>
+  </rule>
+
+  <!-- Auditd records an actual execution; neither event contains a remote IP. -->
+  <rule id="100610" level="10">
+    <if_sid>80792</if_sid>
+    <list field="audit.command" lookup="match_key_value" check_value="review">etc/lists/stis-suspicious-programs</list>
+    <description>Suspicious command executed on agent: $(audit.exe)</description>
+    <group>host_command,suspicious_process,</group>
+  </rule>
+
+  <!-- A periodic ps snapshot catches a process that remained running. It
+       complements auditd but cannot prove who started the process. -->
+  <rule id="100611" level="8">
+    <if_sid>530</if_sid>
+    <match>ossec: output: 'ps -eo pid=,comm='</match>
+    <regex type="pcre2">(?m)^\s*[0-9]+\s+(?:nc(?:\.openbsd|\.traditional)?|ncat|socat)\s*$</regex>
+    <description>Suspicious network utility is running on agent</description>
+    <group>suspicious_process,host_command,</group>
+  </rule>
+
+</group>

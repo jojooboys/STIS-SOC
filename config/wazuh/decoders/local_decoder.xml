@@ -1,0 +1,15 @@
+<!-- Install as /var/ossec/etc/decoders/local_decoder.xml on the Wazuh Manager. -->
+<!-- Expected one-line website logs:
+     [2026-09-29 10:20:30] FAILED LOGIN USER=admin IP=192.168.18.50
+     [2026-09-29 10:20:30] SQLI ATTEMPT USER=admin_OR_1=1 IP=192.168.18.50
+-->
+
+<decoder name="web1-login">
+  <prematch type="pcre2">(?:LOGIN|ATTEMPT) USER=</prematch>
+  <regex type="pcre2" offset="after_prematch">(.*?) IP=(\S+)$</regex>
+  <order>dstuser,srcip</order>
+</decoder>
+
+<!-- website_guard.py writes one flat JSON object per line. The built-in
+     Wazuh JSON decoder reads event_type, threat_type, file_path, file_hash,
+     matched_terms, and change_type without another custom decoder. -->
