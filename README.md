@@ -11,9 +11,8 @@
 | Program studi | Komputasi Statistik |
 | Perguruan tinggi | Politeknik Statistika STIS |
 | Judul skripsi | Perancangan dan Implementasi Sistem Deteksi dan Mitigasi Otomatis Serangan Web di Politeknik Statistika STIS |
-| Sipadu | Bukan skripsi Sipadu; tautan branch Sipadu tidak berlaku |
 
-Repositori memuat kode artefak, pemodelan berbasis aturan, dataset dummy publik, dokumentasi sistem, dan panduan penggunaan. Nama project GitLab menggunakan judul skripsi.
+Repositori memuat kode artefak, pemodelan berbasis aturan, dataset dummy publik, dokumentasi sistem, dan panduan penggunaan.
 
 ## Isi pengumpulan
 
